@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>チャットUI Mock</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f5f5f5;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 16px;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.user .message-bubble {
+            background-color: #34c759;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.bot .message-bubble {
+            background-color: #e5e5ea;
+            color: #000;
+            border-bottom-left-radius: 4px;
+        }
+
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: white;
+            padding: 12px 16px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .input-field:focus {
+            border-color: #34c759;
+        }
+
+        .send-button {
+            padding: 10px 24px;
+            background-color: #34c759;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            white-space: nowrap;
+        }
+
+        .send-button:hover {
+            background-color: #2db84e;
+        }
+
+        .send-button:active {
+            background-color: #28a745;
+        }
+
+        .send-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        /* レスポンシブデザイン */
+        @media (max-width: 768px) {
+            .message-bubble {
+                max-width: 85%;
+            }
+
+            .input-container {
+                padding: 10px 12px;
+            }
+
+            .chat-container {
+                padding: 16px 12px;
+                padding-bottom: 90px;
+            }
+        }
+
+        /* PC用の最大幅設定 */
+        @media (min-width: 1024px) {
+            .chat-container {
+                max-width: 800px;
+                margin: 0 auto;
+                width: 100%;
+            }
+
+            .input-container {
+                max-width: 800px;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+
+        /* スクロールバーのスタイル（Webkit系ブラウザ） */
+        .chat-container::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-container::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        .chat-container::-webkit-scrollbar-thumb:hover {
+            background: #aaa;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container" id="chatContainer"></div>
+
+    <div class="input-container">
+        <input
+            type="text"
+            class="input-field"
+            id="messageInput"
+            placeholder="メッセージを入力..."
+            autocomplete="off"
+        >
+        <button class="send-button" id="sendButton">送信</button>
+    </div>
+
+    <script>
+        // ランダムな返信メッセージ（20パターン）
+        const randomResponses = [
+            "こんにちは！今日はいい天気ですね！",
+            "それは素晴らしいですね！もっと聞かせてください！",
+            "わかりました！お手伝いできることがあれば教えてくださいね！",
+            "なるほど！面白いお話ですね！",
+            "いいですね！私も同じように思います！",
+            "ありがとうございます！とても参考になります！",
+            "そうなんですね！楽しそうです！",
+            "素敵ですね！ぜひ詳しく教えてください！",
+            "おお、それは良いアイデアですね！",
+            "了解しました！頑張ってくださいね！",
+            "嬉しいです！一緒に楽しみましょう！",
+            "そうですね！私もそう思います！",
+            "わかります！それはとても大切ですよね！",
+            "いい感じですね！応援しています！",
+            "なるほど！勉強になります！",
+            "素晴らしい！その調子です！",
+            "ありがとうございます！嬉しいです！",
+            "そうですか！興味深いですね！",
+            "了解です！また何かあれば教えてくださいね！",
+            "いいですね！楽しみにしています！"
+        ];
+
+        const chatContainer = document.getElementById('chatContainer');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // メッセージを追加する関数
+        function addMessage(text, isUser) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'message-bubble';
+            bubbleDiv.textContent = text;
+
+            messageDiv.appendChild(bubbleDiv);
+            chatContainer.appendChild(messageDiv);
+
+            // 最新のメッセージまでスクロール
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        // ランダムな返信を取得
+        function getRandomResponse() {
+            const randomIndex = Math.floor(Math.random() * randomResponses.length);
+            return randomResponses[randomIndex];
+        }
+
+        // メッセージを送信する関数
+        function sendMessage() {
+            const text = messageInput.value.trim();
+
+            if (text === '') {
+                return;
+            }
+
+            // ユーザーのメッセージを表示
+            addMessage(text, true);
+
+            // 入力欄をクリア
+            messageInput.value = '';
+
+            // 送信ボタンを一時的に無効化
+            sendButton.disabled = true;
+
+            // 少し遅延させてから自動返信
+            setTimeout(() => {
+                const response = getRandomResponse();
+                addMessage(response, false);
+                sendButton.disabled = false;
+                messageInput.focus();
+            }, 500 + Math.random() * 1000); // 0.5〜1.5秒のランダムな遅延
+        }
+
+        // 送信ボタンのクリックイベント
+        sendButton.addEventListener('click', sendMessage);
+
+        // Enterキーでメッセージ送信
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // 初期フォーカス
+        messageInput.focus();
+    </script>
+</body>
+</html>
